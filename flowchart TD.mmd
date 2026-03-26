@@ -1,0 +1,41 @@
+flowchart TD
+    %% Nodes
+
+
+        %% A("fab:fa-youtube Starter Guide")
+        %% B("fab:fa-youtube Make Flowchart")
+        %% n1@{ icon: "fa:gem", pos: "b", h: 24}
+        %% C("fa:fa-book-open Learn More")
+        %% D{"Use the editor"}
+        %% n2(Many shapes)@{ shape: delay}
+        %% E(fa:fa-shapes Visual Editor)
+        %% F("fa:fa-chevron-up Add node in toolbar")
+        %% G("fa:fa-comment-dots AI chat")
+        %% H("fa:fa-arrow-left Open AI in side menu")
+        %% I("fa:fa-code Text")
+        %% J(fa:fa-arrow-left Type Mermaid syntax)
+        A("Take Process Inputs (PID,Arival Time, Burst Time, Priority)")
+        A1("Put them in table based on thier priority")
+        B("Make First Alogirthm (Priority) and run it")
+        B1("Simualte every second")
+        C("Calculate the scheduling of processes")
+
+
+
+
+
+    %% Edge connections between nodes
+        A --> B --> C 
+        B-->B1
+        A --> A1
+        %% D -- Build and Design --> E --> F
+        %% D -- Use AI --> G --> H
+        %% D -- Mermaid js --> I --> J
+
+    %% Individual node styling. Try the visual editor toolbar for easier styling!
+        style A1 color:#FFFFFF, fill:#AA00FF, stroke:#AA00FF
+        style A color:#FFFFFF, stroke:#00C853, fill:#00C853
+        style B color:#FFFFFF, stroke:#00C853, fill:#00C853
+        %% style I color:#FFFFFF, stroke:#2962FF, fill:#2962FF
+
+    %% You can add notes with two "%" signs in a row!
