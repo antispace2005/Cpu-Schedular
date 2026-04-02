@@ -39,6 +39,19 @@ class Scheduler:
         # 3. Build the initial Pandas table
         self.update_table()
 
+    def add_processes(self, processes):
+        """Add one process or many processes to the scheduler."""
+        if processes is None:
+            return
+
+        if isinstance(processes, Process):
+            processes = [processes]
+
+        new_processes = copy.deepcopy(list(processes))
+        self.processes.extend(new_processes)
+        self.processes = sorted(self.processes, key=lambda p: p.pid, reverse=True)
+        self.update_table()
+
     def update_table(self):
         """
         Pulls the current attributes from the Process objects and 
@@ -229,6 +242,18 @@ class FIFSscheduler(PriorityScheduler):
         super().__init__(temp,preemptive=False)
         # You can add any additional initialization here if needed
 
+    def add_processes(self, processes):
+        if processes is None:
+            return
+
+        if isinstance(processes, Process):
+            processes = [processes]
+
+        new_processes = copy.deepcopy(list(processes))
+        for p in new_processes:
+            p.priority = p.arrival_time
+        super().add_processes(new_processes)
+
 
 
 
@@ -243,6 +268,18 @@ class SJFscheduler(PriorityScheduler):
     def update_priority(self, running_process):
         running_process.priority = running_process.remaining_time
 
+    def add_processes(self, processes):
+        if processes is None:
+            return
+
+        if isinstance(processes, Process):
+            processes = [processes]
+
+        new_processes = copy.deepcopy(list(processes))
+        for p in new_processes:
+            p.priority = p.burst_time
+        super().add_processes(new_processes)
+
 
 
 class RRscheduler(Scheduler):
@@ -253,6 +290,18 @@ class RRscheduler(Scheduler):
             p.priority = 0  # All processes have the same priority in Round Robin
         super().__init__(temp)
         self.time_quantum = time_quantum
+
+    def add_processes(self, processes):
+        if processes is None:
+            return
+
+        if isinstance(processes, Process):
+            processes = [processes]
+
+        new_processes = copy.deepcopy(list(processes))
+        for p in new_processes:
+            p.priority = 0
+        super().add_processes(new_processes)
 
 
     def schedule(self):
