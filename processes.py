@@ -52,6 +52,34 @@ class Scheduler:
         self.processes = sorted(self.processes, key=lambda p: p.pid, reverse=True)
         self.update_table()
 
+    def remove_process(self, pid):
+        """Remove a process by PID."""
+        initial_len = len(self.processes)
+        self.processes = [p for p in self.processes if p.pid != pid]
+
+        if len(self.processes) == initial_len:
+            raise ValueError(f"Process with PID {pid} not found")
+
+        self.update_table()
+
+    def edit_process(self, pid, arrival_time=None, burst_time=None, priority=None):
+        """Edit process fields by PID."""
+        process = next((p for p in self.processes if p.pid == pid), None)
+        if process is None:
+            raise ValueError(f"Process with PID {pid} not found")
+
+        if arrival_time is not None:
+            process.arrival_time = arrival_time
+
+        if burst_time is not None:
+            process.burst_time = burst_time
+            process.remaining_time = burst_time
+
+        if priority is not None:
+            process.priority = priority
+
+        self.update_table()
+
     def update_table(self):
         """
         Pulls the current attributes from the Process objects and 
@@ -254,6 +282,13 @@ class FIFSscheduler(PriorityScheduler):
             p.priority = p.arrival_time
         super().add_processes(new_processes)
 
+    def edit_process(self, pid, arrival_time=None, burst_time=None, priority=None):
+        _ = priority
+        super().edit_process(pid, arrival_time=arrival_time, burst_time=burst_time, priority=None)
+        process = next((p for p in self.processes if p.pid == pid), None)
+        process.priority = process.arrival_time
+        self.update_table()
+
 
 
 
@@ -280,6 +315,13 @@ class SJFscheduler(PriorityScheduler):
             p.priority = p.burst_time
         super().add_processes(new_processes)
 
+    def edit_process(self, pid, arrival_time=None, burst_time=None, priority=None):
+        _ = priority
+        super().edit_process(pid, arrival_time=arrival_time, burst_time=burst_time, priority=None)
+        process = next((p for p in self.processes if p.pid == pid), None)
+        process.priority = process.burst_time
+        self.update_table()
+
 
 
 class RRscheduler(Scheduler):
@@ -302,6 +344,13 @@ class RRscheduler(Scheduler):
         for p in new_processes:
             p.priority = 0
         super().add_processes(new_processes)
+
+    def edit_process(self, pid, arrival_time=None, burst_time=None, priority=None):
+        _ = priority
+        super().edit_process(pid, arrival_time=arrival_time, burst_time=burst_time, priority=None)
+        process = next((p for p in self.processes if p.pid == pid), None)
+        process.priority = 0
+        self.update_table()
 
 
     def schedule(self):
