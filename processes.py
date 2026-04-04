@@ -223,7 +223,7 @@ class PriorityScheduler(Scheduler):
             if running_process:
                 running_process.remaining_time -= 1
                 self.gantt_chart_array.append((time, running_process.pid))
-                print(f"Time {time}: Running Process {running_process.pid} (Remaining Time: {running_process.remaining_time})")
+                # print(f"Time {time}: Running Process {running_process.pid} (Remaining Time: {running_process.remaining_time})")
                 self.states.append(self.generate_state(running_process, ready_queue, not_arrived_processes, finished_processes))
 
                 if running_process.response_time == 0:
@@ -401,7 +401,7 @@ class RRscheduler(Scheduler):
 
 
         while len(finished_processes) < len(self.processes):
-            print(f"Time {time}: Checking for arriving processes...")
+            # print(f"Time {time}: Checking for arriving processes...")
             for i in range(len(not_arrived_processes) - 1, -1, -1):
                 process = not_arrived_processes[i]
                 if time >= process.arrival_time:
@@ -409,19 +409,19 @@ class RRscheduler(Scheduler):
                     # Remove from not_arrived and add to ready_queue
                     ready_queue[0].append(not_arrived_processes.pop(i))
                     ready_queue[0][-1].response_time = 0
-            print(f"Ready Queue: {[p.pid for p in ready_queue[0]]}")
+            # print(f"Ready Queue: {[p.pid for p in ready_queue[0]]}")
 
             if running_process is None:
                 if ready_queue[0]:  # If there's a process in the ready queue
                     running_process = ready_queue[0].pop(0)  # Get the first process
             
-            print(f"Running Process: {running_process.pid if running_process else 'None'}")
+            # print(f"Running Process: {running_process.pid if running_process else 'None'}")
 
             if running_process:
                 running_process.remaining_time -= 1
                 counter+=1
                 self.gantt_chart_array.append((time, running_process.pid))
-                print(f"Time {time}: Running Process {running_process.pid} (Remaining Time: {running_process.remaining_time})")
+                # print(f"Time {time}: Running Process {running_process.pid} (Remaining Time: {running_process.remaining_time})")
                 self.states.append(self.generate_state(running_process, ready_queue, not_arrived_processes, finished_processes))
 
                 if running_process.response_time == 0:

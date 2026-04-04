@@ -99,6 +99,47 @@
          </property>
         </widget>
        </item>
+       <item row="0" column="6">
+                <widget class="QWidget" name="timeNavWidget" native="true">
+                 <layout class="QVBoxLayout" name="timeNavLayout">
+                    <property name="spacing">
+                     <number>2</number>
+                    </property>
+                    <property name="leftMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <widget class="QPushButton" name="nextTimeButton">
+                        <property name="text">
+                         <string>▲</string>
+                        </property>
+                        <property name="maximumWidth">
+                         <number>35</number>
+                        </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="prevTimeButton">
+                        <property name="text">
+                         <string>▼</string>
+                        </property>
+                        <property name="maximumWidth">
+                         <number>35</number>
+                        </property>
+                     </widget>
+                    </item>
+                 </layout>
+                </widget>
+       </item>
       </layout>
      </widget>
     </item>
@@ -224,13 +265,6 @@
            <widget class="QPushButton" name="pauseButton">
             <property name="text">
              <string>Pause</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="stepButton">
-            <property name="text">
-             <string>Next Time Unit</string>
             </property>
            </widget>
           </item>

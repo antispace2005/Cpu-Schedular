@@ -31,3 +31,12 @@ def replace_process(old_pid: int, new_process: Process) -> None:
         raise ValueError(f"Process with PID {new_process.pid} already exists.")
 
     main_process_list[old_index] = new_process
+
+
+def remove_processes_by_pid(pids: list[int]) -> int:
+    pid_set = set(pids)
+    if not pid_set:
+        return 0
+    before_count = len(main_process_list)
+    main_process_list[:] = [process for process in main_process_list if process.pid not in pid_set]
+    return before_count - len(main_process_list)

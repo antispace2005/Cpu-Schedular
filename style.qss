@@ -49,6 +49,16 @@ QPushButton:disabled {
     border-color: #3a3a3a;
 }
 
+QPushButton#nextTimeButton,
+QPushButton#prevTimeButton {
+    min-width: 30px;
+    max-width: 35px;
+    min-height: 18px;
+    max-height: 18px;
+    padding: 0px;
+    font-weight: 700;
+}
+
 QComboBox,
 QSpinBox {
     background-color: #2b2d31;
