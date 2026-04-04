@@ -4,6 +4,7 @@ from pathlib import Path
 from PySide6.QtCore import QFile, QTimer, Qt
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
+	QAbstractSpinBox,
 	QApplication,
 	QCheckBox,
 	QComboBox,
@@ -12,6 +13,7 @@ from PySide6.QtWidgets import (
 	QLabel,
 	QMainWindow,
 	QMessageBox,
+	QStyleFactory,
 	QVBoxLayout,
 	QPushButton,
 	QSpinBox,
@@ -63,6 +65,8 @@ class AddProcessDialog:
 		self.buttonBox = self.dialog.findChild(QDialogButtonBox, "buttonBox")
 
 		self._validate_ui()
+		for spinbox in (self.pidSpinBox, self.arrivalSpinBox, self.burstSpinBox, self.prioritySpinBox):
+			spinbox.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.PlusMinus)
 		self.set_priority_visible(True)
 		self.buttonBox.accepted.connect(self.dialog.accept)
 		self.buttonBox.rejected.connect(self.dialog.reject)
@@ -210,6 +214,8 @@ class MainWindow:
 		self.resetButton.clicked.connect(self.on_reset_clicked)
 
 	def _initialize_view_state(self) -> None:
+		self.timeQuantumSpinBox.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.PlusMinus)
+		self.jumpToTimeSpinBox.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.PlusMinus)
 		self.on_scheduler_type_changed()
 		self.populate_processes_table()
 		self.set_status("Ready.")
@@ -698,6 +704,7 @@ class MainWindow:
 
 def main() -> None:
 	app = QApplication(sys.argv)
+	app.setStyle(QStyleFactory.create("Fusion"))
 
 	base_dir = Path(__file__).resolve().parent
 	main_ui_path = base_dir / "main.ui"
