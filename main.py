@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QFile, QTimer
+from PySide6.QtCore import QFile, QTimer, Qt
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
 	QApplication,
@@ -42,8 +42,17 @@ def load_ui(ui_path: Path, parent: QWidget | None = None) -> QWidget:
 
 
 class AddProcessDialog:
-	def __init__(self, ui_path: Path):
+	def __init__(self, ui_path: Path, parent_window: QWidget | None = None):
 		self.dialog = load_ui(ui_path)
+
+		if sys.platform.startswith("linux"):
+			if parent_window is not None:
+				self.dialog.setParent(parent_window, Qt.WindowType.Dialog)
+			self.dialog.setWindowFlag(Qt.WindowType.Dialog, True)
+			self.dialog.setWindowFlag(Qt.WindowType.Window, True)
+			self.dialog.setWindowFlag(Qt.WindowType.Tool, True)
+			self.dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
+			self.dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
 
 		self.pidSpinBox = self.dialog.findChild(QSpinBox, "pidSpinBox")
 		self.arrivalSpinBox = self.dialog.findChild(QSpinBox, "arrivalSpinBox")
@@ -95,9 +104,10 @@ class AddProcessDialog:
 
 
 class MainWindow:
-	def __init__(self, main_ui_path: Path, add_ui_path: Path):
+	def __init__(self, main_ui_path: Path, add_ui_path: Path, is_dark_mode: bool):
 		self.main_ui_path = main_ui_path
 		self.add_ui_path = add_ui_path
+		self.is_dark_mode = is_dark_mode
 		self.window = load_ui(main_ui_path)
 		self.scheduler_entities = {}
 		self.playback_scheduler = None
@@ -224,7 +234,7 @@ class MainWindow:
 		self.on_scheduler_mode_ui_changed()
 
 	def on_add_process_clicked(self) -> None:
-		dialog = AddProcessDialog(self.add_ui_path)
+		dialog = AddProcessDialog(self.add_ui_path, self.window)
 		all_processes = get_all_processes()
 		next_pid = (max(process.pid for process in all_processes) + 1) if all_processes else 1
 		dialog.set_values(
@@ -324,7 +334,7 @@ class MainWindow:
 			self.show_error("Edit Process", f"Process P{selected_pid} not found.")
 			return
 
-		dialog = AddProcessDialog(self.add_ui_path)
+		dialog = AddProcessDialog(self.add_ui_path, self.window)
 		dialog.set_values(
 			pid=selected_process.pid,
 			arrival=selected_process.arrival_time,
@@ -567,11 +577,25 @@ class MainWindow:
 	def draw_gantt_chart(self, gantt_data: list) -> None:
 		"""Draw a 1D Gantt chart as a single timeline with colored segments for each process."""
 		self.gantt_fig.clear()
+		fig_bg = "#1e1f22" if self.is_dark_mode else "#f4f6f8"
+		text_color = "#e6e6e6" if self.is_dark_mode else "#1f2328"
+		grid_color = "#3a3d41" if self.is_dark_mode else "#d0d7de"
+		self.gantt_fig.patch.set_facecolor(fig_bg)
+
 		if not gantt_data:
+			ax = self.gantt_fig.add_subplot(111)
+			ax.set_facecolor(fig_bg)
+			ax.set_title("Gantt Chart", color=text_color)
+			ax.tick_params(colors=text_color)
+			for spine in ax.spines.values():
+				spine.set_color(grid_color)
+			ax.set_xticks([])
+			ax.set_yticks([])
 			self.gantt_canvas.draw()
 			return
 
 		ax = self.gantt_fig.add_subplot(111)
+		ax.set_facecolor(fig_bg)
 		
 		# Group consecutive same PID entries into (start_time, duration, pid)
 		segments = []
@@ -612,11 +636,15 @@ class MainWindow:
 					align="center", color=colors[pid], edgecolor='black', linewidth=1, label=f"P{pid}")
 
 		# Format the plot
-		ax.set_xlabel("Time", fontsize=12)
-		ax.set_ylabel("Execution Timeline", fontsize=12)
-		ax.set_title("Gantt Chart", fontsize=14)
+		ax.set_xlabel("Time", fontsize=12, color=text_color)
+		ax.set_ylabel("Execution Timeline", fontsize=12, color=text_color)
+		ax.set_title("Gantt Chart", fontsize=14, color=text_color)
 		ax.set_yticks([0])
 		ax.set_yticklabels(["CPU"])
+		ax.tick_params(colors=text_color)
+		ax.grid(axis="x", color=grid_color, alpha=0.35, linestyle="--")
+		for spine in ax.spines.values():
+			spine.set_color(grid_color)
 		
 		# Add legend with unique PIDs only
 		handles, labels = ax.get_legend_handles_labels()
@@ -629,7 +657,7 @@ class MainWindow:
 		
 		if unique_handles_labels:
 			ax.legend([h for h, _ in unique_handles_labels], [l for _, l in unique_handles_labels], 
-					 loc='upper right', fontsize=10)
+					 loc='upper right', fontsize=10, facecolor=fig_bg, edgecolor=grid_color, labelcolor=text_color)
 		
 		if gantt_data:
 			last_time = gantt_data[-1][0] + 1
@@ -674,12 +702,22 @@ def main() -> None:
 	base_dir = Path(__file__).resolve().parent
 	main_ui_path = base_dir / "main.ui"
 	add_ui_path = base_dir / "add_process.ui"
-	style_qss_path = base_dir / "style.qss"
+	dark_style_path = base_dir / "style.qss"
+	light_style_path = base_dir / "style_light.qss"
 
-	if style_qss_path.exists():
-		app.setStyleSheet(style_qss_path.read_text(encoding="utf-8"))
+	is_dark_mode = False
+	try:
+		is_dark_mode = app.styleHints().colorScheme() == Qt.ColorScheme.Dark
+	except Exception:
+		is_dark_mode = app.palette().window().color().value() < 128
 
-	main_window = MainWindow(main_ui_path, add_ui_path)
+	selected_style_path = dark_style_path if is_dark_mode else light_style_path
+	if selected_style_path.exists():
+		app.setStyleSheet(selected_style_path.read_text(encoding="utf-8"))
+	elif dark_style_path.exists():
+		app.setStyleSheet(dark_style_path.read_text(encoding="utf-8"))
+
+	main_window = MainWindow(main_ui_path, add_ui_path, is_dark_mode)
 	main_window.show()
 
 	sys.exit(app.exec())
