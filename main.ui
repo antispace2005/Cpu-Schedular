@@ -149,6 +149,13 @@
               </widget>
              </item>
              <item>
+              <widget class="QPushButton" name="editProcessButton">
+               <property name="text">
+                <string>Edit Process</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <widget class="QPushButton" name="removeSelectedButton">
                <property name="text">
                 <string>Remove Selected</string>
@@ -209,7 +216,7 @@
           <item>
            <widget class="QPushButton" name="startButton">
             <property name="text">
-                         <string>Start / Resume</string>
+             <string>Start / Resume</string>
             </property>
            </widget>
           </item>
@@ -223,34 +230,27 @@
           <item>
            <widget class="QPushButton" name="stepButton">
             <property name="text">
-                         <string>Next Time Unit</string>
+             <string>Next Time Unit</string>
             </property>
            </widget>
           </item>
-                    <item>
-                     <widget class="QSpinBox" name="jumpToTimeSpinBox">
-                        <property name="minimum">
-                         <number>0</number>
-                        </property>
-                        <property name="maximum">
-                         <number>1000000</number>
-                        </property>
-                        <property name="value">
-                         <number>0</number>
-                        </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QPushButton" name="jumpToTimeButton">
-                        <property name="text">
-                         <string>Move To Time</string>
-                        </property>
-                     </widget>
-                    </item>
           <item>
-           <widget class="QPushButton" name="runExistingOnlyButton">
+           <widget class="QSpinBox" name="jumpToTimeSpinBox">
+            <property name="minimum">
+             <number>0</number>
+            </property>
+            <property name="maximum">
+             <number>1000000</number>
+            </property>
+            <property name="value">
+             <number>0</number>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="jumpToTimeButton">
             <property name="text">
-             <string>Run Existing Only</string>
+             <string>Move To Time</string>
             </property>
            </widget>
           </item>
@@ -282,7 +282,7 @@
         <item>
          <widget class="QGroupBox" name="remainingTableGroup">
           <property name="title">
-           <string>Remaining Burst Time (Live)</string>
+           <string>Live Process Metrics</string>
           </property>
           <layout class="QVBoxLayout" name="remainingTableLayout">
            <item>
@@ -298,6 +298,16 @@
              <column>
               <property name="text">
                <string>Remaining</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Waiting</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Turnaround</string>
               </property>
              </column>
              <column>

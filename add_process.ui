@@ -10,6 +10,12 @@
     <height>220</height>
    </rect>
   </property>
+    <property name="windowModality">
+     <enum>Qt::ApplicationModal</enum>
+    </property>
+    <property name="windowFlags">
+     <set>Qt::Dialog|Qt::WindowTitleHint|Qt::WindowSystemMenuHint|Qt::WindowCloseButtonHint</set>
+    </property>
   <property name="windowTitle">
    <string>Add Process</string>
   </property>
@@ -88,10 +94,13 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0" colspan="2">
+      <item row="3" column="2">
        <widget class="QLabel" name="priorityHintLabel">
         <property name="text">
-         <string>Priority is used only for Priority scheduler.</string>
+        <string>(Only required for Priority scheduler)</string>
+        </property>
+        <property name="wordWrap">
+        <bool>true</bool>
         </property>
        </widget>
       </item>

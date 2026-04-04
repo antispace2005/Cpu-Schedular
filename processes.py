@@ -52,6 +52,14 @@ class Scheduler:
         self.processes = sorted(self.processes, key=lambda p: p.pid, reverse=True)
         self.update_table()
 
+    def update_list(self, processes):
+        """Replace the entire process list with a new list of processes."""
+        if processes is None:
+            raise ValueError("Process list cannot be None")
+
+        self.processes = sorted(copy.deepcopy(list(processes)), key=lambda p: p.pid, reverse=True)
+        self.update_table()
+
     def remove_process(self, pid):
         """Remove a process by PID."""
         initial_len = len(self.processes)
@@ -107,10 +115,11 @@ class Scheduler:
         
         # Create the DataFrame
         self.process_table = pd.DataFrame(data)
-        
+
         # Set the PID as the index so you can easily look up rows by ID
         # e.g., self.process_table.loc[1] gets you Process 1's data
-        self.process_table.set_index("PID", inplace=True)
+        if not self.process_table.empty:
+            self.process_table.set_index("PID", inplace=True)
 
     def display_table(self):
         """Helper to print the table neatly."""
@@ -282,6 +291,15 @@ class FIFSscheduler(PriorityScheduler):
             p.priority = p.arrival_time
         super().add_processes(new_processes)
 
+    def update_list(self, processes):
+        if processes is None:
+            raise ValueError("Process list cannot be None")
+
+        new_processes = copy.deepcopy(list(processes))
+        for p in new_processes:
+            p.priority = p.arrival_time
+        super().update_list(new_processes)
+
     def edit_process(self, pid, arrival_time=None, burst_time=None, priority=None):
         _ = priority
         super().edit_process(pid, arrival_time=arrival_time, burst_time=burst_time, priority=None)
@@ -315,6 +333,15 @@ class SJFscheduler(PriorityScheduler):
             p.priority = p.burst_time
         super().add_processes(new_processes)
 
+    def update_list(self, processes):
+        if processes is None:
+            raise ValueError("Process list cannot be None")
+
+        new_processes = copy.deepcopy(list(processes))
+        for p in new_processes:
+            p.priority = p.burst_time
+        super().update_list(new_processes)
+
     def edit_process(self, pid, arrival_time=None, burst_time=None, priority=None):
         _ = priority
         super().edit_process(pid, arrival_time=arrival_time, burst_time=burst_time, priority=None)
@@ -344,6 +371,15 @@ class RRscheduler(Scheduler):
         for p in new_processes:
             p.priority = 0
         super().add_processes(new_processes)
+
+    def update_list(self, processes):
+        if processes is None:
+            raise ValueError("Process list cannot be None")
+
+        new_processes = copy.deepcopy(list(processes))
+        for p in new_processes:
+            p.priority = 0
+        super().update_list(new_processes)
 
     def edit_process(self, pid, arrival_time=None, burst_time=None, priority=None):
         _ = priority
