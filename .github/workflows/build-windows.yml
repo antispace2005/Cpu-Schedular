@@ -26,7 +26,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install PySide6 matplotlib pyinstaller
+        pip install PySide6 matplotlib pandas numpy pyinstaller
     
     - name: Build executable
       run: |
@@ -35,6 +35,8 @@ jobs:
           --collect-binaries shiboken6 `
           --collect-data PySide6 `
           --collect-all matplotlib `
+          --collect-all pandas `
+          --collect-all numpy `
           --hidden-import PySide6.QtCore `
           --hidden-import PySide6.QtGui `
           --hidden-import PySide6.QtWidgets `
