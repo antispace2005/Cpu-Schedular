@@ -52,16 +52,17 @@ jobs:
           --exclude-module notebook `
           --exclude-module tkinter `
           --exclude-module scipy `
-          --add-data "main.ui;." `
-          --add-data "add_process.ui;." `
-          --add-data "style.qss;." `
-          --add-data "style_light.qss;."
+          --add-data "$env:GITHUB_WORKSPACE/main.ui;." `
+          --add-data "$env:GITHUB_WORKSPACE/add_process.ui;." `
+          --add-data "$env:GITHUB_WORKSPACE/style.qss;." `
+          --add-data "$env:GITHUB_WORKSPACE/style_light.qss;."
 
     - name: Package Qt zip
       run: |
         Compress-Archive -Path "dist-qt/CPU-Scheduler-Qt/*" -DestinationPath "dist-qt/CPU-Scheduler-Qt-windows.zip" -Force
 
     - name: Build Tk executable (main2.py)
+      if: hashFiles('main2.py') != ''
       run: |
         pyinstaller main2.py --windowed --clean --noconfirm --optimize 2 --name CPU-Scheduler-Tk `
           --distpath dist-tk --workpath build-tk --specpath spec-tk `
@@ -80,6 +81,7 @@ jobs:
           --exclude-module scipy
 
     - name: Package Tk zip
+      if: hashFiles('main2.py') != ''
       run: |
         Compress-Archive -Path "dist-tk/CPU-Scheduler-Tk/*" -DestinationPath "dist-tk/CPU-Scheduler-Tk-windows.zip" -Force
     
@@ -90,6 +92,7 @@ jobs:
         path: dist-qt/CPU-Scheduler-Qt-windows.zip
 
     - name: Upload Tk artifact
+      if: hashFiles('main2.py') != ''
       uses: actions/upload-artifact@v4
       with:
         name: CPU-Scheduler-Tk-Windows
@@ -99,8 +102,6 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          dist-qt/CPU-Scheduler-Qt-windows.zip
-          dist-tk/CPU-Scheduler-Tk-windows.zip
+        files: dist-qt/CPU-Scheduler-Qt-windows.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
