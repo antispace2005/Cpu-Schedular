@@ -57,6 +57,7 @@ class AddProcessDialog:
 
 		self.pidSpinBox = self.dialog.findChild(QSpinBox, "pidSpinBox")
 		self.arrivalSpinBox = self.dialog.findChild(QSpinBox, "arrivalSpinBox")
+		self.arrivalLabel = self.dialog.findChild(QLabel, "arrivalLabel")
 		self.burstSpinBox = self.dialog.findChild(QSpinBox, "burstSpinBox")
 		self.prioritySpinBox = self.dialog.findChild(QSpinBox, "prioritySpinBox")
 		self.priorityLabel = self.dialog.findChild(QLabel, "priorityLabel")
@@ -73,6 +74,7 @@ class AddProcessDialog:
 	def _validate_ui(self) -> None:
 		required = [
 			self.pidSpinBox,
+			self.arrivalLabel,
 			self.arrivalSpinBox,
 			self.burstSpinBox,
 			self.prioritySpinBox,
@@ -87,6 +89,10 @@ class AddProcessDialog:
 		self.priorityLabel.setVisible(visible)
 		self.prioritySpinBox.setVisible(visible)
 		self.priorityHintLabel.setVisible(visible)
+
+	def set_arrival_visible(self, visible: bool) -> None:
+		self.arrivalLabel.setVisible(visible)
+		self.arrivalSpinBox.setVisible(visible)
 
 	def exec(self) -> int:
 		return self.dialog.exec()
@@ -119,6 +125,7 @@ class MainWindow:
 		self.playback_running = False
 		self.current_time = 0
 		self.playback_gantt_data = []
+		self.live_process_snapshot = []
 		self.timer = QTimer(self.window)
 		self.timer.setInterval(1000)
 		self.timer.timeout.connect(self.advance_playback_state)
@@ -146,6 +153,7 @@ class MainWindow:
 		self.startButton = self.window.findChild(QPushButton, "startButton")
 		self.pauseButton = self.window.findChild(QPushButton, "pauseButton")
 		self.runExistingOnlyButton = self.window.findChild(QPushButton, "runExistingOnlyButton")
+		self.liveAddProcessButton = self.window.findChild(QPushButton, "liveAddProcessButton")
 		self.prevTimeButton = self.window.findChild(QPushButton, "prevTimeButton")
 		self.nextTimeButton = self.window.findChild(QPushButton, "nextTimeButton")
 		self.jumpToTimeSpinBox = self.window.findChild(QSpinBox, "jumpToTimeSpinBox")
@@ -184,6 +192,7 @@ class MainWindow:
 			self.startButton,
 			self.pauseButton,
 			self.runExistingOnlyButton,
+			self.liveAddProcessButton,
 			self.prevTimeButton,
 			self.nextTimeButton,
 			self.jumpToTimeSpinBox,
@@ -208,6 +217,7 @@ class MainWindow:
 		self.startButton.clicked.connect(self.on_start_resume_clicked)
 		self.pauseButton.clicked.connect(self.on_pause_clicked)
 		self.runExistingOnlyButton.clicked.connect(self.on_run_existing_only_clicked)
+		self.liveAddProcessButton.clicked.connect(self.on_live_add_process_clicked)
 		self.prevTimeButton.clicked.connect(self.on_prev_time_clicked)
 		self.nextTimeButton.clicked.connect(self.on_next_time_clicked)
 		self.jumpToTimeButton.clicked.connect(self.on_move_to_time_clicked)
@@ -218,10 +228,21 @@ class MainWindow:
 		self.jumpToTimeSpinBox.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.PlusMinus)
 		self.jumpToTimeSpinBox.setMinimum(0)
 		self.jumpToTimeSpinBox.setValue(0)
+		self.startButton.setText("Start / Restart")
 		self.clockLabel.setText("Current Time: 0")
 		self.on_scheduler_type_changed()
 		self.populate_processes_table()
+		self.update_playback_button_labels()
 		self.set_status("Ready.")
+
+	def update_playback_button_labels(self) -> None:
+		self.startButton.setText("Start / Restart")
+		if self.timer.isActive():
+			self.pauseButton.setText("Pause")
+		elif self.playback_states and self.playback_index < len(self.playback_states):
+			self.pauseButton.setText("Resume")
+		else:
+			self.pauseButton.setText("Pause")
 
 	def show(self) -> None:
 		self.window.show()
@@ -285,6 +306,8 @@ class MainWindow:
 	def on_run_existing_only_clicked(self) -> None:
 		self.handle_run_existing_only()
 
+	def on_live_add_process_clicked(self) -> None:
+		self.handle_live_add_process()
 
 	def on_reset_clicked(self) -> None:
 		self.handle_reset()
@@ -400,24 +423,16 @@ class MainWindow:
 		return self.scheduler_entities.get(self.schedulerTypeComboBox.currentText())
 
 	def handle_start_or_resume(self) -> None:
-		if (
-			self.playback_states
-			and not self.timer.isActive()
-			and self.playback_index < len(self.playback_states) - 1
-		):
-			self.playback_running = True
-			self.timer.start()
-			self.update_results_from_state(self.playback_states[-1])
-			self.set_status("Playback resumed.")
-			return
-
 		scheduler = self.get_current_scheduler_entity()
 		if scheduler is None:
 			self.show_error("Run Scheduler", "No scheduler entity is available.")
 			return
 
 		try:
-			scheduler.update_list(get_all_processes())
+			self.timer.stop()
+			self.playback_running = False
+			self.live_process_snapshot = list(get_all_processes())
+			scheduler.update_list(self.live_process_snapshot)
 			scheduler.schedule()
 			self.playback_scheduler = scheduler
 			self.playback_states = list(scheduler.states)
@@ -428,11 +443,13 @@ class MainWindow:
 				self.playback_running = True
 				self.timer.start()
 				self.show_playback_state(0)
+				self.update_playback_button_labels()
 				self.set_status(f"Playing {self.schedulerTypeComboBox.currentText()} live.")
 			else:
 				self.playback_running = False
 				self.timer.stop()
 				self.show_final_scheduler_state(scheduler)
+				self.update_playback_button_labels()
 				self.set_status(f"Ran {self.schedulerTypeComboBox.currentText()}.")
 		except Exception as exc:
 			self.show_error("Run Scheduler", str(exc))
@@ -441,10 +458,12 @@ class MainWindow:
 		if self.timer.isActive():
 			self.timer.stop()
 			self.playback_running = False
+			self.update_playback_button_labels()
 			self.set_status("Playback paused.")
-		elif self.playback_states:
+		elif self.playback_states and self.playback_index < len(self.playback_states):
 			self.playback_running = True
 			self.timer.start()
+			self.update_playback_button_labels()
 			self.set_status("Playback resumed.")
 
 	def handle_next_time(self) -> None:
@@ -454,6 +473,7 @@ class MainWindow:
 		self.timer.stop()
 		self.playback_running = False
 		self.advance_playback_state()
+		self.update_playback_button_labels()
 		self.set_status("Paused at next time unit.")
 
 	def handle_prev_time(self) -> None:
@@ -464,6 +484,7 @@ class MainWindow:
 		self.playback_running = False
 		if self.playback_index > 0:
 			self.show_playback_state(self.playback_index - 1)
+		self.update_playback_button_labels()
 		self.set_status("Paused at previous time unit.")
 
 	def handle_move_to_time(self, target_time: int) -> None:
@@ -479,6 +500,7 @@ class MainWindow:
 		self.timer.stop()
 		self.playback_running = False
 		self.show_playback_state(target_time)
+		self.update_playback_button_labels()
 		self.set_status(f"Jumped to time {target_time} and paused.")
 
 	def handle_run_existing_only(self) -> None:
@@ -494,6 +516,7 @@ class MainWindow:
 
 		self.timer.stop()
 		self.playback_running = False
+		self.update_playback_button_labels()
 
 		try:
 			scheduler.update_list(process_snapshot)
@@ -501,6 +524,7 @@ class MainWindow:
 			self.playback_scheduler = scheduler
 			self.playback_states = list(scheduler.states)
 			self.playback_gantt_data = list(scheduler.gantt_chart_array)
+			self.live_process_snapshot = []
 			self.playback_index = len(self.playback_states)
 			self.update_results_from_state(self.playback_states[-1] if self.playback_states else None)
 			self.show_final_scheduler_state(scheduler)
@@ -508,18 +532,106 @@ class MainWindow:
 		except Exception as exc:
 			self.show_error("Run Existing Only", str(exc))
 
+	def handle_live_add_process(self) -> None:
+		"""Pause playback, add a process temporarily to the scheduler, and resume from current time."""
+		if not self.playback_states:
+			self.show_error("Live Add Process", "Playback is not active. Start/resume the scheduler first.")
+			return
+
+		self.timer.stop()
+		self.playback_running = False
+		self.update_playback_button_labels()
+
+		if not self.live_process_snapshot:
+			self.live_process_snapshot = list(get_all_processes())
+
+		dialog = AddProcessDialog(self.add_ui_path, self.window)
+		dialog.set_arrival_visible(False)
+		dialog.set_priority_visible(self.uses_priority())
+
+		next_pid = (max(process.pid for process in self.live_process_snapshot) + 1) if self.live_process_snapshot else 1
+		dialog.set_values(
+			pid=next_pid,
+			arrival=self.current_time,
+			burst=1,
+			priority=0,
+		)
+
+		if dialog.exec() != QDialog.Accepted:
+			if self.playback_states and self.playback_index < len(self.playback_states):
+				self.playback_running = True
+				self.timer.start()
+				self.update_playback_button_labels()
+			return
+
+		values = dialog.values()
+		try:
+			live_pids = {process.pid for process in self.live_process_snapshot}
+			if values["pid"] in live_pids:
+				raise ValueError(f"PID {values['pid']} already exists in current live run.")
+
+			temp_process = Process(
+				pid=values["pid"],
+				arrival_time=self.current_time,
+				burst_time=values["burst"],
+				priority=values["priority"],
+			)
+
+			process_snapshot = list(self.live_process_snapshot)
+			process_snapshot.append(temp_process)
+			self.live_process_snapshot = process_snapshot
+
+			self.re_run_scheduler_from_current_time(process_snapshot)
+			self.set_status(f"Added process P{temp_process.pid} (temporary) at time {self.current_time}. Playback resumed.")
+		except Exception as exc:
+			self.show_error("Live Add Process", str(exc))
+			if self.playback_states and self.playback_index < len(self.playback_states):
+				self.playback_running = True
+				self.timer.start()
+				self.update_playback_button_labels()
+
+	def re_run_scheduler_from_current_time(self, process_snapshot: list) -> None:
+		"""Re-run the scheduler with the modified process snapshot and resume playback from current_time."""
+		scheduler = self.get_current_scheduler_entity()
+		if scheduler is None:
+			self.show_error("Reschedule", "No scheduler entity is available.")
+			return
+
+		try:
+			scheduler.update_list(process_snapshot)
+			scheduler.schedule()
+
+			self.playback_scheduler = scheduler
+			self.playback_states = list(scheduler.states)
+			self.playback_gantt_data = list(scheduler.gantt_chart_array)
+
+			if self.playback_index > len(self.playback_states):
+				self.playback_index = len(self.playback_states)
+
+			self.update_results_from_state(self.playback_states[-1] if self.playback_states else None)
+
+			self.show_playback_state(self.playback_index)
+			if self.playback_index < len(self.playback_states):
+				self.playback_running = True
+				self.timer.start()
+			self.update_playback_button_labels()
+		except Exception as exc:
+			self.show_error("Reschedule", str(exc))
+
 	def handle_reset(self) -> None:
 		self.timer.stop()
 		self.playback_scheduler = None
 		self.playback_states = []
 		self.playback_index = 0
 		self.playback_running = False
+		self.live_process_snapshot = []
 		self.current_time = 0
 		self.clockLabel.setText("Current Time: 0")
 		self.jumpToTimeSpinBox.setValue(0)
 		self.populate_live_tables_from_scheduler(None)
 		self.draw_gantt_chart([])
 		self.update_results_labels(0.0, 0.0)
+		self.update_playback_button_labels()
 		self.set_status("Reset.")
 
 	def populate_processes_table(self) -> None:
@@ -602,12 +714,14 @@ class MainWindow:
 		if not self.playback_states:
 			self.timer.stop()
 			self.playback_running = False
+			self.update_playback_button_labels()
 			return
 
 		if self.playback_index >= len(self.playback_states):
 			self.timer.stop()
 			self.playback_running = False
 			self.show_playback_state(len(self.playback_states))
+			self.update_playback_button_labels()
 			self.set_status("Playback finished.")
 			return
 
