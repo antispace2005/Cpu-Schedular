@@ -30,25 +30,33 @@ jobs:
     
     - name: Build executable
       run: |
-        pyinstaller main.py --windowed --onefile --clean --noconfirm `
-          --collect-all PySide6 `
-          --collect-all shiboken6 `
+        pyinstaller main.py --windowed --clean --noconfirm --name CPU-Scheduler `
+          --collect-binaries PySide6 `
+          --collect-binaries shiboken6 `
+          --collect-data PySide6 `
           --collect-all matplotlib `
+          --hidden-import PySide6.QtCore `
+          --hidden-import PySide6.QtGui `
+          --hidden-import PySide6.QtWidgets `
           --add-data "main.ui;." `
           --add-data "add_process.ui;." `
           --add-data "style.qss;." `
           --add-data "style_light.qss;."
+
+    - name: Package distributable zip
+      run: |
+        Compress-Archive -Path "dist/CPU-Scheduler/*" -DestinationPath "dist/CPU-Scheduler-windows.zip" -Force
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: CPU-Scheduler-Windows
-        path: dist/main.exe
+        path: dist/CPU-Scheduler-windows.zip
     
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: dist/main.exe
+        files: dist/CPU-Scheduler-windows.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
