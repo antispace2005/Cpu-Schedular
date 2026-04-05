@@ -30,16 +30,27 @@ jobs:
     
     - name: Build executable
       run: |
-        pyinstaller main.py --windowed --clean --noconfirm --name CPU-Scheduler `
+        pyinstaller main.py --windowed --clean --noconfirm --optimize 2 --name CPU-Scheduler `
           --collect-binaries PySide6 `
           --collect-binaries shiboken6 `
           --collect-data PySide6 `
-          --collect-all matplotlib `
-          --collect-all pandas `
-          --collect-all numpy `
+          --collect-data matplotlib `
+          --collect-data pandas `
           --hidden-import PySide6.QtCore `
           --hidden-import PySide6.QtGui `
           --hidden-import PySide6.QtWidgets `
+          --hidden-import matplotlib.backends.backend_qtagg `
+          --hidden-import pandas `
+          --hidden-import numpy `
+          --exclude-module matplotlib.tests `
+          --exclude-module numpy.tests `
+          --exclude-module pandas.tests `
+          --exclude-module pytest `
+          --exclude-module IPython `
+          --exclude-module jupyter `
+          --exclude-module notebook `
+          --exclude-module tkinter `
+          --exclude-module scipy `
           --add-data "main.ui;." `
           --add-data "add_process.ui;." `
           --add-data "style.qss;." `
