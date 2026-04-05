@@ -784,18 +784,28 @@ class MainWindow:
 			duration = last_time_for_current_pid - start_time + 1
 			segments.append((start_time, duration, current_pid))
 
-		# Create color map for PIDs
-		unique_pids = sorted(set(seg[2] for seg in segments))
-		colors = {}
-		cmap = plt.colormaps.get_cmap('tab10')
-		for i, pid in enumerate(unique_pids):
-			colors[pid] = cmap(i % 10)
+		# Stable PID->color mapping: deterministic 32-color cycle.
+		# This prevents existing process colors from changing when new PIDs are added.
+		palette = []
+		for cmap_name in ("tab20", "tab20b"):
+			cmap = plt.colormaps.get_cmap(cmap_name)
+			palette.extend([cmap(i) for i in range(cmap.N)])
+		palette = palette[:32]
+
+		def color_for_pid(pid) -> tuple:
+			try:
+				pid_value = int(pid)
+				index = (pid_value - 1) % len(palette) if pid_value > 0 else abs(pid_value) % len(palette)
+			except (TypeError, ValueError):
+				# Fallback deterministic index for any non-integer PID representation.
+				index = sum(ord(ch) for ch in str(pid)) % len(palette)
+			return palette[index]
 
 		# Draw segments on a single y-axis (y=0)
 		y_position = 0
 		for start_time, duration, pid in segments:
 			ax.barh(y_position, duration, left=start_time, height=0.6, 
-					align="center", color=colors[pid], edgecolor='black', linewidth=1, label=f"P{pid}")
+					align="center", color=color_for_pid(pid), edgecolor='black', linewidth=1, label=f"P{pid}")
 
 		# Show only segment boundary times on the x-axis (start/end of each run).
 		boundary_times = sorted({t for start_time, duration, _pid in segments for t in (start_time, start_time + duration)})
