@@ -1,4 +1,4 @@
-name: Build Windows Executable
+name: Build Windows Executables
 
 permissions:
   contents: write
@@ -28,9 +28,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install PySide6 matplotlib pandas numpy pyinstaller
     
-    - name: Build executable
+    - name: Build Qt executable (main.py)
       run: |
-        pyinstaller main.py --windowed --clean --noconfirm --optimize 2 --name CPU-Scheduler `
+        pyinstaller main.py --windowed --clean --noconfirm --optimize 2 --name CPU-Scheduler-Qt `
+          --distpath dist-qt --workpath build-qt --specpath spec-qt `
           --collect-binaries PySide6 `
           --collect-binaries shiboken6 `
           --collect-data PySide6 `
@@ -56,20 +57,50 @@ jobs:
           --add-data "style.qss;." `
           --add-data "style_light.qss;."
 
-    - name: Package distributable zip
+    - name: Package Qt zip
       run: |
-        Compress-Archive -Path "dist/CPU-Scheduler/*" -DestinationPath "dist/CPU-Scheduler-windows.zip" -Force
+        Compress-Archive -Path "dist-qt/CPU-Scheduler-Qt/*" -DestinationPath "dist-qt/CPU-Scheduler-Qt-windows.zip" -Force
+
+    - name: Build Tk executable (main2.py)
+      run: |
+        pyinstaller main2.py --windowed --clean --noconfirm --optimize 2 --name CPU-Scheduler-Tk `
+          --distpath dist-tk --workpath build-tk --specpath spec-tk `
+          --collect-data matplotlib `
+          --collect-data pandas `
+          --hidden-import matplotlib.backends.backend_tkagg `
+          --hidden-import pandas `
+          --hidden-import numpy `
+          --exclude-module matplotlib.tests `
+          --exclude-module numpy.tests `
+          --exclude-module pandas.tests `
+          --exclude-module pytest `
+          --exclude-module IPython `
+          --exclude-module jupyter `
+          --exclude-module notebook `
+          --exclude-module scipy
+
+    - name: Package Tk zip
+      run: |
+        Compress-Archive -Path "dist-tk/CPU-Scheduler-Tk/*" -DestinationPath "dist-tk/CPU-Scheduler-Tk-windows.zip" -Force
     
-    - name: Upload artifact
+    - name: Upload Qt artifact
       uses: actions/upload-artifact@v4
       with:
-        name: CPU-Scheduler-Windows
-        path: dist/CPU-Scheduler-windows.zip
+        name: CPU-Scheduler-Qt-Windows
+        path: dist-qt/CPU-Scheduler-Qt-windows.zip
+
+    - name: Upload Tk artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: CPU-Scheduler-Tk-Windows
+        path: dist-tk/CPU-Scheduler-Tk-windows.zip
     
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: dist/CPU-Scheduler-windows.zip
+        files: |
+          dist-qt/CPU-Scheduler-Qt-windows.zip
+          dist-tk/CPU-Scheduler-Tk-windows.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
