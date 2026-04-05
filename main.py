@@ -244,6 +244,7 @@ class MainWindow:
 
 	def on_add_process_clicked(self) -> None:
 		dialog = AddProcessDialog(self.add_ui_path, self.window)
+		dialog.set_priority_visible(self.uses_priority())
 		all_processes = get_all_processes()
 		next_pid = (max(process.pid for process in all_processes) + 1) if all_processes else 1
 		dialog.set_values(
@@ -289,7 +290,8 @@ class MainWindow:
 		self.handle_reset()
 
 	def on_scheduler_mode_ui_changed(self) -> None:
-		pass
+		# Update table visibility when scheduler type changes
+		self.populate_processes_table()
 
 	def handle_add_process(self, values: dict) -> None:
 		try:
@@ -347,6 +349,7 @@ class MainWindow:
 			return
 
 		dialog = AddProcessDialog(self.add_ui_path, self.window)
+		dialog.set_priority_visible(self.uses_priority())
 		dialog.set_values(
 			pid=selected_process.pid,
 			arrival=selected_process.arrival_time,
@@ -523,13 +526,21 @@ class MainWindow:
 		processes = sorted(get_all_processes(), key=lambda process: process.pid)
 		table = self.processesTableWidget
 		table.setRowCount(len(processes))
-		table.setColumnCount(4)
-		table.setHorizontalHeaderLabels(["PID", "Arrival", "Burst", "Priority"])
-
-		for row, process in enumerate(processes):
-			values = [process.pid, process.arrival_time, process.burst_time, process.priority]
-			for col, value in enumerate(values):
-				table.setItem(row, col, QTableWidgetItem(str(value)))
+		
+		if self.uses_priority():
+			table.setColumnCount(4)
+			table.setHorizontalHeaderLabels(["PID", "Arrival", "Burst", "Priority"])
+			for row, process in enumerate(processes):
+				values = [process.pid, process.arrival_time, process.burst_time, process.priority]
+				for col, value in enumerate(values):
+					table.setItem(row, col, QTableWidgetItem(str(value)))
+		else:
+			table.setColumnCount(3)
+			table.setHorizontalHeaderLabels(["PID", "Arrival", "Burst"])
+			for row, process in enumerate(processes):
+				values = [process.pid, process.arrival_time, process.burst_time]
+				for col, value in enumerate(values):
+					table.setItem(row, col, QTableWidgetItem(str(value)))
 
 		table.resizeColumnsToContents()
 
