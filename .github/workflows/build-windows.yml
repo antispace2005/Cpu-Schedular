@@ -26,10 +26,10 @@ jobs:
     
     - name: Build executable
       run: |
-        pyinstaller main.py --windowed --onefile --strip ^
-          --add-data "main.ui;." ^
-          --add-data "add_process.ui;." ^
-          --add-data "style.qss;." ^
+        pyinstaller main.py --windowed --onefile --strip `
+          --add-data "main.ui;." `
+          --add-data "add_process.ui;." `
+          --add-data "style.qss;." `
           --add-data "style_light.qss;."
     
     - name: Upload artifact
