@@ -6,7 +6,6 @@ from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
 	QAbstractSpinBox,
 	QApplication,
-	QCheckBox,
 	QComboBox,
 	QDialog,
 	QDialogButtonBox,
@@ -134,7 +133,6 @@ class MainWindow:
 		self.schedulerTypeComboBox = self.window.findChild(QComboBox, "schedulerTypeComboBox")
 		self.timeQuantumLabel = self.window.findChild(QLabel, "timeQuantumLabel")
 		self.timeQuantumSpinBox = self.window.findChild(QSpinBox, "timeQuantumSpinBox")
-		self.liveSchedulingCheckBox = self.window.findChild(QCheckBox, "liveSchedulingCheckBox")
 		self.clockLabel = self.window.findChild(QLabel, "clockLabel")
 
 		self.processesTableWidget = self.window.findChild(QTableWidget, "processesTableWidget")
@@ -147,6 +145,7 @@ class MainWindow:
 
 		self.startButton = self.window.findChild(QPushButton, "startButton")
 		self.pauseButton = self.window.findChild(QPushButton, "pauseButton")
+		self.runExistingOnlyButton = self.window.findChild(QPushButton, "runExistingOnlyButton")
 		self.prevTimeButton = self.window.findChild(QPushButton, "prevTimeButton")
 		self.nextTimeButton = self.window.findChild(QPushButton, "nextTimeButton")
 		self.jumpToTimeSpinBox = self.window.findChild(QSpinBox, "jumpToTimeSpinBox")
@@ -174,7 +173,6 @@ class MainWindow:
 			self.schedulerTypeComboBox,
 			self.timeQuantumLabel,
 			self.timeQuantumSpinBox,
-			self.liveSchedulingCheckBox,
 			self.clockLabel,
 			self.processesTableWidget,
 			self.remainingTableWidget,
@@ -185,6 +183,7 @@ class MainWindow:
 			self.clearProcessesButton,
 			self.startButton,
 			self.pauseButton,
+			self.runExistingOnlyButton,
 			self.prevTimeButton,
 			self.nextTimeButton,
 			self.jumpToTimeSpinBox,
@@ -208,6 +207,7 @@ class MainWindow:
 
 		self.startButton.clicked.connect(self.on_start_resume_clicked)
 		self.pauseButton.clicked.connect(self.on_pause_clicked)
+		self.runExistingOnlyButton.clicked.connect(self.on_run_existing_only_clicked)
 		self.prevTimeButton.clicked.connect(self.on_prev_time_clicked)
 		self.nextTimeButton.clicked.connect(self.on_next_time_clicked)
 		self.jumpToTimeButton.clicked.connect(self.on_move_to_time_clicked)
@@ -216,6 +216,9 @@ class MainWindow:
 	def _initialize_view_state(self) -> None:
 		self.timeQuantumSpinBox.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.PlusMinus)
 		self.jumpToTimeSpinBox.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.PlusMinus)
+		self.jumpToTimeSpinBox.setMinimum(0)
+		self.jumpToTimeSpinBox.setValue(0)
+		self.clockLabel.setText("Current Time: 0")
 		self.on_scheduler_type_changed()
 		self.populate_processes_table()
 		self.set_status("Ready.")
@@ -277,6 +280,9 @@ class MainWindow:
 	def on_move_to_time_clicked(self) -> None:
 		target_time = self.jumpToTimeSpinBox.value()
 		self.handle_move_to_time(target_time)
+
+	def on_run_existing_only_clicked(self) -> None:
+		self.handle_run_existing_only()
 
 
 	def on_reset_clicked(self) -> None:
@@ -392,8 +398,7 @@ class MainWindow:
 
 	def handle_start_or_resume(self) -> None:
 		if (
-			self.liveSchedulingCheckBox.isChecked()
-			and self.playback_states
+			self.playback_states
 			and not self.timer.isActive()
 			and self.playback_index < len(self.playback_states) - 1
 		):
@@ -416,7 +421,7 @@ class MainWindow:
 			self.playback_gantt_data = list(scheduler.gantt_chart_array)
 			self.playback_index = 0
 			self.update_results_from_state(self.playback_states[-1] if self.playback_states else None)
-			if self.liveSchedulingCheckBox.isChecked() and self.playback_states:
+			if self.playback_states:
 				self.playback_running = True
 				self.timer.start()
 				self.show_playback_state(0)
@@ -459,13 +464,13 @@ class MainWindow:
 		self.set_status("Paused at previous time unit.")
 
 	def handle_move_to_time(self, target_time: int) -> None:
-		"""Jump to specific time and pause playback."""
+		"""Jump to a displayed timeline time and pause playback."""
 		if not self.playback_states:
 			self.show_error("Jump to Time", "No playback data available. Run scheduler first.")
 			return
 		
-		if target_time < 0 or target_time >= len(self.playback_states):
-			self.show_error("Jump to Time", f"Time must be between 0 and {len(self.playback_states) - 1}.")
+		if target_time < 0 or target_time > len(self.playback_states):
+			self.show_error("Jump to Time", f"Time must be between 0 and {len(self.playback_states)}.")
 			return
 		
 		self.timer.stop()
@@ -474,7 +479,31 @@ class MainWindow:
 		self.set_status(f"Jumped to time {target_time} and paused.")
 
 	def handle_run_existing_only(self) -> None:
-		pass
+		process_snapshot = list(get_all_processes())
+		if not process_snapshot:
+			self.show_error("Run Existing Only", "No processes available to run.")
+			return
+
+		scheduler = self.get_current_scheduler_entity()
+		if scheduler is None:
+			self.show_error("Run Existing Only", "No scheduler entity is available.")
+			return
+
+		self.timer.stop()
+		self.playback_running = False
+
+		try:
+			scheduler.update_list(process_snapshot)
+			scheduler.schedule()
+			self.playback_scheduler = scheduler
+			self.playback_states = list(scheduler.states)
+			self.playback_gantt_data = list(scheduler.gantt_chart_array)
+			self.playback_index = len(self.playback_states)
+			self.update_results_from_state(self.playback_states[-1] if self.playback_states else None)
+			self.show_final_scheduler_state(scheduler)
+			self.set_status(f"Ran {self.schedulerTypeComboBox.currentText()} on existing snapshot (non-live).")
+		except Exception as exc:
+			self.show_error("Run Existing Only", str(exc))
 
 	def handle_reset(self) -> None:
 		self.timer.stop()
@@ -484,6 +513,7 @@ class MainWindow:
 		self.playback_running = False
 		self.current_time = 0
 		self.clockLabel.setText("Current Time: 0")
+		self.jumpToTimeSpinBox.setValue(0)
 		self.populate_live_tables_from_scheduler(None)
 		self.draw_gantt_chart([])
 		self.update_results_labels(0.0, 0.0)
@@ -538,11 +568,12 @@ class MainWindow:
 	def show_playback_state(self, index: int) -> None:
 		if not self.playback_states:
 			return
-		index = max(0, min(index, len(self.playback_states) - 1))
+		index = max(0, min(index, len(self.playback_states)))
 		self.playback_index = index
 		self.current_time = index
 		self.clockLabel.setText(f"Current Time: {self.current_time}")
-		self.populate_live_tables_from_state(self.playback_states[index])
+		current_state = self.playback_states[index - 1] if index > 0 else None
+		self.populate_live_tables_from_state(current_state)
 		gantt_data_up_to_now = [entry for entry in self.playback_gantt_data if entry[0] < index]
 		self.draw_gantt_chart(gantt_data_up_to_now)
 
@@ -551,7 +582,7 @@ class MainWindow:
 			self.populate_live_tables_from_state(None)
 			self.draw_gantt_chart([])
 			return
-		self.current_time = max(0, len(scheduler.states) - 1)
+		self.current_time = len(scheduler.states)
 		self.clockLabel.setText(f"Current Time: {self.current_time}")
 		self.populate_live_tables_from_state(scheduler.states[-1])
 		self.draw_gantt_chart(scheduler.gantt_chart_array)
@@ -562,10 +593,10 @@ class MainWindow:
 			self.playback_running = False
 			return
 
-		if self.playback_index >= len(self.playback_states) - 1:
+		if self.playback_index >= len(self.playback_states):
 			self.timer.stop()
 			self.playback_running = False
-			self.show_playback_state(len(self.playback_states) - 1)
+			self.show_playback_state(len(self.playback_states))
 			self.set_status("Playback finished.")
 			return
 
@@ -641,6 +672,9 @@ class MainWindow:
 			ax.barh(y_position, duration, left=start_time, height=0.6, 
 					align="center", color=colors[pid], edgecolor='black', linewidth=1, label=f"P{pid}")
 
+		# Show only segment boundary times on the x-axis (start/end of each run).
+		boundary_times = sorted({t for start_time, duration, _pid in segments for t in (start_time, start_time + duration)})
+
 		# Format the plot
 		ax.set_xlabel("Time", fontsize=12, color=text_color)
 		ax.set_ylabel("Execution Timeline", fontsize=12, color=text_color)
@@ -668,6 +702,9 @@ class MainWindow:
 		if gantt_data:
 			last_time = gantt_data[-1][0] + 1
 			ax.set_xlim(0, last_time)
+		if boundary_times:
+			ax.set_xticks(boundary_times)
+			ax.set_xticklabels([str(time_value) for time_value in boundary_times])
 		
 		self.gantt_fig.tight_layout()
 		self.gantt_canvas.draw()

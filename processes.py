@@ -127,7 +127,7 @@ class Scheduler:
 
     import pandas as pd
 
-    def generate_state(self, running_process, ready_queue, not_arrived_processes, finished_processes):
+    def generate_state(self, running_process, ready_queue, not_arrived_processes, finished_processes, current_time=None):
         """
         Builds the state DataFrame by directly extracting processes from their current queues.
         No dependency on self.processes!
@@ -140,7 +140,10 @@ class Scheduler:
             
         # 2. Grab the not arrived processes
         for p in not_arrived_processes:
-            categorized_processes.append((p, "Not Arrived"))
+            status = "Not Arrived"
+            if current_time is not None and p.arrival_time <= current_time:
+                status = "Ready"
+            categorized_processes.append((p, status))
             
         # 3. Grab the ready processes (flattening the priority queues)
         for sublist in ready_queue:
@@ -224,7 +227,6 @@ class PriorityScheduler(Scheduler):
                 running_process.remaining_time -= 1
                 self.gantt_chart_array.append((time, running_process.pid))
                 # print(f"Time {time}: Running Process {running_process.pid} (Remaining Time: {running_process.remaining_time})")
-                self.states.append(self.generate_state(running_process, ready_queue, not_arrived_processes, finished_processes))
 
                 if running_process.response_time == 0:
                     running_process.response_time = time - running_process.arrival_time
@@ -240,15 +242,9 @@ class PriorityScheduler(Scheduler):
                         self.update_priority(running_process)
                     ready_queue[running_process.priority].insert(0, running_process)
                     running_process = None
-            else:
-                self.states.append(self.generate_state(running_process, ready_queue, not_arrived_processes, finished_processes))
 
-
-
-
-
+            self.states.append(self.generate_state(running_process, ready_queue, not_arrived_processes, finished_processes, current_time=time + 1))
             time += 1
-        self.states.append(self.generate_state(running_process, ready_queue, not_arrived_processes, finished_processes))
 
 
 
@@ -422,7 +418,6 @@ class RRscheduler(Scheduler):
                 counter+=1
                 self.gantt_chart_array.append((time, running_process.pid))
                 # print(f"Time {time}: Running Process {running_process.pid} (Remaining Time: {running_process.remaining_time})")
-                self.states.append(self.generate_state(running_process, ready_queue, not_arrived_processes, finished_processes))
 
                 if running_process.response_time == 0:
                     running_process.response_time = time - running_process.arrival_time
@@ -439,13 +434,8 @@ class RRscheduler(Scheduler):
                     ready_queue[0].append(running_process)
                     running_process = None
                     counter=0
-            else:
-                self.states.append(self.generate_state(running_process, ready_queue, not_arrived_processes, finished_processes))
 
-
-
-
+            self.states.append(self.generate_state(running_process, ready_queue, not_arrived_processes, finished_processes, current_time=time + 1))
             time += 1
-        self.states.append(self.generate_state(running_process, ready_queue, not_arrived_processes, finished_processes))
 
 

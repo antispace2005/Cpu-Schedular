@@ -82,24 +82,14 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="4">
-        <widget class="QCheckBox" name="liveSchedulingCheckBox">
-         <property name="text">
-          <string>Live Scheduling (1 sec / time unit)</string>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="5">
+      <item row="0" column="4">
         <widget class="QLabel" name="clockLabel">
          <property name="text">
           <string>Current Time: 0</string>
          </property>
         </widget>
        </item>
-       <item row="0" column="6">
+      <item row="0" column="5">
                 <widget class="QWidget" name="timeNavWidget" native="true">
                  <layout class="QVBoxLayout" name="timeNavLayout">
                     <property name="spacing">
@@ -265,6 +255,13 @@
            <widget class="QPushButton" name="pauseButton">
             <property name="text">
              <string>Pause</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="runExistingOnlyButton">
+            <property name="text">
+             <string>Run Existing Only</string>
             </property>
            </widget>
           </item>
