@@ -30,6 +30,9 @@ from processes import FIFSscheduler, PriorityScheduler, Process, RRscheduler, SJ
 from main_process_list import add_process, clear_processes, get_all_processes, replace_process, remove_processes_by_pid
 
 
+APP_VERSION = "1.1"
+
+
 def load_ui(ui_path: Path, parent: QWidget | None = None) -> QWidget:
 	loader = QUiLoader()
 	ui_file = QFile(str(ui_path))
@@ -118,6 +121,7 @@ class MainWindow:
 		self.add_ui_path = add_ui_path
 		self.is_dark_mode = is_dark_mode
 		self.window = load_ui(main_ui_path)
+		self.window.setWindowTitle(f"CPU Scheduler Simulator v{APP_VERSION} (Qt)")
 		self.scheduler_entities = {}
 		self.playback_scheduler = None
 		self.playback_states = []
